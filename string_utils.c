@@ -76,7 +76,8 @@ void sigchld_handler(int signum){
 int main(){
     srandom(time(NULL));
     signal(SIGINT, sigint_handler);
-    signal(SIGCHLD, sigchld_handler);
+    // Stop killing the process
+    // signal(SIGCHLD, sigchld_handler);
     while(1){
         int num = 0;
         //printf("rolling dice...\nyou've got number %ld\n", ROLL(2));
@@ -89,7 +90,7 @@ int main(){
                 exit(0);
             }
             else
-                wait(NULL);
+                waitpid(f1, NULL, 0); // Wait for the right PID, instead of any
             rep(i, 0, cm.argc) free(cm.argv[i]);
             free(cm.argv);
         }
