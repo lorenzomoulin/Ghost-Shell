@@ -68,8 +68,13 @@ void sigint_handler(int signum){
 }
 
 void sigchld_handler(int signum){
-    while (waitpid(-1, NULL, WNOHANG) != -1){
-        printf("kill = %d\n", kill(0, SIGKILL));
+    pid_t pid;
+    int   status;
+    while ((pid = waitpid(-1, &status, WNOHANG)) != -1)
+    {
+     //   unregister_child(pid, status);   // Or whatever you need to do with the PID
+        printf("pid = %d, groupid = %d\n", pid, getpgid(pid));
+        kill(-getpgid(pid), SIGKILL);
     }
 }
 
@@ -110,6 +115,7 @@ int main(){
                     all[i] = f;
                     if (first) pgid = f, first = 0;
                     setpgid(f, pgid);
+                    printf("pid = %d - pgid = %d\n", f, getpgid(f));
                 }
             }
         }
