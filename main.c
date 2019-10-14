@@ -1,21 +1,21 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h> 
-#include <sys/types.h>
+// #include <stdio.h>
+// #include <stdlib.h>
+// #include <unistd.h> 
+// #include <sys/types.h>
 
-int main(){
+// int main(){
 
-  while(1){
-    printf("gsh> ");
-    char cmd[100];
-    scanf("%[^\n]%*c",cmd);
+//   while(1){
+//     printf("gsh> ");
+//     char cmd[100];
+//     scanf("%[^\n]%*c",cmd);
     
-    pid_t pid = fork();
+//     pid_t pid = fork();
 
-    if(pid == 0){
-      system(cmd);
-    }
-  }
+//     if(pid == 0){
+//       system(cmd);
+//     }
+//   }
 
-  return 0;
-}
+//   return 0;
+// }

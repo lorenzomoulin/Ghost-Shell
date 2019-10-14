@@ -6,6 +6,8 @@
 #include <time.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include <sys/errno.h>
+#include "process_manager.h"
 #define ROLL(x) (random() % x)
 #define PROMPT printf("gsh> ");
 #define NEWLINE '\n'
@@ -20,6 +22,8 @@ typedef struct tcommand{ //tipo comando que mantém os argumentos e a sua quanti
     int argc;
     char **argv;
 } tcommand;
+
+ProcessManager* procList;
 
 //retorna a quantidade de comandos lidos e armazena os comandos na matriz buffer.
 int prompt(){
@@ -63,7 +67,7 @@ void sigint_handler(int signum){
     printf("\n"); PROMPT printf("Realmente deseja fechar a ghost shell? s/n - ");
     char ans;
     scanf("%c", &ans);
-    if (ans == 's' || ans == 'S')exit(0);
+    if (ans == 's' || ans == 'S') exit(0);
     PROMPT
 }
 
@@ -73,8 +77,14 @@ void sigchld_handler(int signum){
     while ((pid = waitpid(-1, &status, WNOHANG)) != -1)
     {
      //   unregister_child(pid, status);   // Or whatever you need to do with the PID
-        printf("pid = %d, groupid = %d\n", pid, getpgid(pid));
-        kill(-getpgid(pid), SIGKILL);
+         if(pid != 0){
+            Process* proc = searchProcess(procList, pid);
+            procList = removeProcess(procList, pid);
+            printf("SIGCHLD HANDLER: ");
+            printProcess(proc);
+            kill(-(proc->pgid), SIGKILL);
+         }
+         return;  
     }
 }
 
@@ -82,19 +92,35 @@ int main(){
     srandom(time(NULL));
     signal(SIGINT, sigint_handler);
     signal(SIGCHLD, sigchld_handler);
+
+    procList = createProcessManager();
+
     while(1){
         int num = 0;
         //printf("rolling dice...\nyou've got number %ld\n", ROLL(2));
         while((num = prompt()) == 0);
         if (num == 1){
             tcommand cm = get_args(buffer[0]);
+
+            if(!strcmp(cm.argv[0], "psx")) printProcessManager(procList);
+
             int f1 = fork();
             if (f1 == 0){
+                
+                signal(SIGINT, SIG_DFL); //restore original Ctrl-C behavior
                 execvp(cm.argv[0], cm.argv);
                 exit(0);
             }
-            else
-                wait(NULL);
+            else{
+                Process* proc = createProcess(f1, getpgid(f1));
+                procList = insertProcess(procList, proc);
+                // printProcessManager(procList);
+
+                signal(SIGINT, SIG_IGN);
+                waitpid(f1, NULL, 0);
+                procList = removeProcess(procList, f1);
+                signal(SIGINT, sigint_handler);
+            }
             rep(i, 0, cm.argc) free(cm.argv[i]);
             free(cm.argv);
         }
@@ -108,6 +134,11 @@ int main(){
                 cmd[i] = get_args(buffer[i]);
                 pid_t f = fork();
                 if (!f){
+                    signal(SIGINT, SIG_IGN);
+
+                    if (first) pgid = f, first = 0;
+                    setpgid(f, pgid);
+                    
                     execvp(cmd[i].argv[0], cmd[i].argv);
                     exit(0);
                 }
@@ -115,7 +146,11 @@ int main(){
                     all[i] = f;
                     if (first) pgid = f, first = 0;
                     setpgid(f, pgid);
-                    printf("pid = %d - pgid = %d\n", f, getpgid(f));
+
+
+                    Process* proc = createProcess(f, pgid);
+                    procList = insertProcess(procList, proc);
+                    // printProcessManager(procList);
                 }
             }
         }
