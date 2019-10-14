@@ -60,10 +60,12 @@ tcommand get_args(char *command){
         cm.argv[i] = malloc(MAXLENCOMM*sizeof *cm.argv[i]);
         strcpy(cm.argv[i], temp[i]);
     }
+    cm.argv[pos] = NULL;
     return cm;
 }
 
 void sigint_handler(int signum){
+    if (isEmpty(procList)) exit(0);
     printf("\n"); PROMPT printf("Realmente deseja fechar a ghost shell? s/n - ");
     char ans;
     scanf("%c", &ans);
@@ -101,7 +103,7 @@ int main(){
         while((num = prompt()) == 0);
         if (num == 1){
             tcommand cm = get_args(buffer[0]);
-
+            
             if(!strcmp(cm.argv[0], "psx")) printProcessManager(procList);
 
             int f1 = fork();
