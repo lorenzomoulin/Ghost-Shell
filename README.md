@@ -1,2 +1,2 @@
-# Sistemas-Operacionais
-Serão postos aqui os dois trabalhos da disciplina de Sistemas Operacionais de 2019/2 da UFES.
+# Ghost Shell
+Trabalho realizado pela disciplina de Sistemas Operacionais do curso de Engenharia de computação da UFES, em 2019/2.

@@ -28,6 +28,8 @@ Process* searchProcess(ProcessManager* lista, pid_t pid);
 void printProcessManager(ProcessManager* lista);
 int isEmpty(ProcessManager* lista);
 void freeProcessManager(ProcessManager* lista);
+void myWait();
+void searchAndSuspend(ProcessManager* lista);
 
 
 #endif
