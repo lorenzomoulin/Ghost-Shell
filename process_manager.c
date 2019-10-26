@@ -106,7 +106,6 @@ void freeProcessManager(ProcessManager* lista){
 		freeProcess(aux->item);
 		free(aux);
 	}
-
 	exit(0);
 }
 
@@ -116,11 +115,13 @@ void myWait(){
 }
 
 void searchAndSuspend(ProcessManager* lista){
-	
+ 	signal(SIGTSTP, SIG_IGN);
 	while(lista!=NULL){
 		ProcessManager* aux = lista;
 		lista = lista->prox;
+		//signal(SIGTSTP, SIG_DFL);
 		kill(-(aux->item->pgid), SIGTSTP);
 	}
-	
+	//signal(SIGTSTP, sigtstp_handler);
 }
+

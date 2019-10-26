@@ -69,7 +69,10 @@ void sigint_handler(int signum){
     printf("\n"); PROMPT printf("Realmente deseja fechar a ghost shell? s/n - ");
     char ans;
     scanf("%c%*c", &ans);
-    if (ans == 's' || ans == 'S') exit(0);
+    if (ans == 's' || ans == 'S'){
+        freeProcessManager(procList);
+        //exit(0);
+    } 
     PROMPT
 }
 
@@ -100,19 +103,21 @@ void sigchld_handler(int signum){
 }
 
 void sigtstp_handler(int signum){
+    printf("entrou handler\n");
     searchAndSuspend(procList);
+    //signal(SIGTSTP,sigtstp_handler);
 }
+
 
 int main(){
     signal(SIGINT, sigint_handler);
     signal(SIGCHLD, sigchld_handler);
-    
 
     procList = createProcessManager();
 
     while(1){
         int num = 0;
-        
+              
         signal(SIGTSTP,sigtstp_handler);
         while((num = prompt()) == 0);
 
@@ -130,7 +135,7 @@ int main(){
 
             if (f1 == 0){
                 signal(SIGINT, SIG_IGN);
-                signal(SIGTSTP,SIG_IGN);
+                //signal(SIGTSTP,SIG_IGN);
                 execvp(cm.argv[0], cm.argv);
                 exit(0);
             }
@@ -164,7 +169,7 @@ int main(){
                     srand(getpid());
                      createdGhost = ROLL(2);
                      signal(SIGINT, SIG_IGN);
-                    signal(SIGTSTP,SIG_IGN);
+                    //signal(SIGTSTP,SIG_IGN);
 
                     if (first) pgid = f, first = 0;
                     setpgid(f, pgid);
