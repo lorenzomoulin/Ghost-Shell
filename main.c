@@ -103,7 +103,7 @@ void sigchld_handler(int signum){
 }
 
 void sigtstp_handler(int signum){
-    printf("entrou handler\n");
+    printf("\nAll running process have been stopped\n");
     searchAndSuspend(procList);
     //signal(SIGTSTP,sigtstp_handler);
 }
@@ -144,7 +144,7 @@ int main(){
                 procList = insertProcess(procList, proc);
 
                 int status;
-                waitpid(f1, &status, 0);
+                waitpid(f1, &status, WUNTRACED);
                 procList = removeProcess(procList, f1);
 
                 // signal(SIGINT, sigint_handler);
