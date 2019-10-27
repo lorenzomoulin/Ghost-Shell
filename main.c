@@ -6,6 +6,7 @@
 #include <time.h>
 #include <signal.h>
 #include <sys/wait.h>
+//#include <sigaction.h>
 #include <sys/errno.h>
 #include "process_manager.h"
 #define ROLL(x) (rand() % x)
@@ -55,16 +56,22 @@ tcommand get_args(char *command){
     }
     tcommand cm;
     cm.argc = pos;
-    cm.argv = malloc(pos*sizeof *cm.argv);
+    cm.argv = malloc((pos+1)*sizeof *cm.argv);
+    //printf("argumentos = %d\n", pos);
     rep(i, 0, pos){
         cm.argv[i] = malloc(MAXLENCOMM*sizeof *cm.argv[i]);
         strcpy(cm.argv[i], temp[i]);
+        //printf(" arg%d = %s ", i, cm.argv[i]);
     }
+    //printf("\n");
     cm.argv[pos] = NULL;
     return cm;
 }
 
 void sigint_handler(int signum){
+    sigset_t mask;
+    sigfillset(&mask);
+    sigprocmask(SIG_SETMASK, &mask, NULL);
     if (isEmpty(procList)) exit(0);
     printf("\n"); PROMPT printf("Realmente deseja fechar a ghost shell? s/n - ");
     char ans;
@@ -74,6 +81,8 @@ void sigint_handler(int signum){
         //exit(0);
     } 
     PROMPT
+    sigemptyset(&mask);
+    sigprocmask(SIG_SETMASK, &mask, NULL);
 }
 
 void sigchld_handler(int signum){
@@ -145,13 +154,19 @@ int main(){
 
                 int status;
                 waitpid(f1, &status, WUNTRACED);
+                //printf("argumentos = %d\n", cm.argc);
+                rep(i, 0, cm.argc+1){
+                    //printf(" arg%d = %s ", i, cm.argv[i]);
+                    free(cm.argv[i]);
+                }
+                //printf("\n");
+                free(cm.argv);
                 procList = removeProcess(procList, f1);
 
                 // signal(SIGINT, sigint_handler);
 
             }
-            rep(i, 0, cm.argc) free(cm.argv[i]);
-            free(cm.argv);
+            
         }
         else{
             //rodar os processos em background    
@@ -190,6 +205,13 @@ int main(){
                     Process* proc = createProcess(f, pgid);
                     procList = insertProcess(procList, proc);
                     // printProcessManager(procList);
+                    //printf("argumentos = %d\n", cmd[i].argc);
+                    rep(j, 0, cmd[i].argc){
+                        //printf(" arg%d = %s ", i, cmd[i].argv[j]);
+                        free(cmd[i].argv[j]);
+                    }
+                    //printf("\n");
+                    free(cmd[i].argv);
                 }
             }
         }
