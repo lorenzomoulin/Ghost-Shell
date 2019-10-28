@@ -22,11 +22,6 @@ void freeProcess(Process* item){
 	free(item);
 }
 
-void printProcess(Process* item){
-	if(item == NULL) printf("Processo inexistente\n");
-	printf("PID:%d / GPID=%d\n", item->pid, item->pgid);
-}
-
 ProcessManager* createProcessManager(){
 	return NULL;
 }
@@ -77,20 +72,6 @@ Process* searchProcess(ProcessManager* lista, pid_t pid){
 	return p->item;
 
 }
-void printProcessManager(ProcessManager* lista){
-	if(lista == NULL){
-		printf("Nenhum processo!\n");
-		return;
-	}
-	
-	printf("*******************************\n");
-	printf("Lista de Processos:\n\n");
-	while(lista != NULL){
-		printProcess(lista->item);
-		lista = lista->prox;
-	}
-	printf("*******************************\n");
-}
 
 int isEmpty(ProcessManager* lista){
 	return (lista==NULL);
@@ -119,9 +100,7 @@ void searchAndSuspend(ProcessManager* lista){
 	while(lista!=NULL){
 		ProcessManager* aux = lista;
 		lista = lista->prox;
-		//signal(SIGTSTP, SIG_DFL);
 		kill(-(aux->item->pgid), SIGTSTP);
 	}
-	//signal(SIGTSTP, sigtstp_handler);
 }
 

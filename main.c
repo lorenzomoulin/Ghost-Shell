@@ -6,10 +6,9 @@
 #include <time.h>
 #include <signal.h>
 #include <sys/wait.h>
-//#include <sigaction.h>
 #include <sys/errno.h>
 #include "process_manager.h"
-#define ROLL(x) (rand() % x)
+#define ROLL(x) (rand() % x) //Macro que retorna 0 ou 1 a partir de um número aleatório
 #define PROMPT printf("gsh> ");
 #define NEWLINE '\n'
 #define MAXNCOMM 10
@@ -19,14 +18,15 @@
 char buffer[MAXNCOMM][MAXLENCOMM];
 pid_t all[MAXNCOMM];
 
-typedef struct tcommand{ //tipo comando que mantém os argumentos e a sua quantidade.
+//Tipo comando que mantém os argumentos e a sua quantidade.
+typedef struct tcommand{ 
     int argc;
     char **argv;
 } tcommand;
 
 ProcessManager* procList;
 
-//retorna a quantidade de comandos lidos e armazena os comandos na matriz buffer.
+//Retorna a quantidade de comandos lidos e armazena os comandos na matriz buffer.
 int prompt(){
     int i = 0;    
     char c = 0, temp[MAXLENCOMM];
@@ -34,16 +34,15 @@ int prompt(){
     while(scanf("%[^#\n]%c", temp, &c) == 2){
         ++i;
         int j = 0;
-        while(temp[j] == ' ' && temp[j] != '\0') j++; //retira espaços do começo da string
-        strcpy(buffer[i-1], temp+j);
-        //printf("comando %d = %s\n", i, buffer[i-1]);     
+        while(temp[j] == ' ' && temp[j] != '\0') j++; 
+        strcpy(buffer[i-1], temp+j);     
         if (c == '\n') break;
     }
     if (!i) getchar();
     return i;
 }
 
-//separa os argumentos de um comando
+//Separa os argumentos de um comando
 tcommand get_args(char *command){
     int i = 0, pos = 0, final = 0;
     char temp[MAXNARG][MAXLENCOMM];
@@ -57,17 +56,17 @@ tcommand get_args(char *command){
     tcommand cm;
     cm.argc = pos;
     cm.argv = malloc((pos+1)*sizeof *cm.argv);
-    //printf("argumentos = %d\n", pos);
+
     rep(i, 0, pos){
         cm.argv[i] = malloc(MAXLENCOMM*sizeof *cm.argv[i]);
-        strcpy(cm.argv[i], temp[i]);
-        //printf(" arg%d = %s ", i, cm.argv[i]);
+        strcpy(cm.argv[i], temp[i]); 
     }
-    //printf("\n");
+   
     cm.argv[pos] = NULL;
     return cm;
 }
 
+//Mudando o comportamento padrão do sinal SIGINT
 void sigint_handler(int signum){
     sigset_t mask;
     sigfillset(&mask);
@@ -78,13 +77,13 @@ void sigint_handler(int signum){
     scanf("%c%*c", &ans);
     if (ans == 's' || ans == 'S'){
         freeProcessManager(procList);
-        //exit(0);
     } 
     PROMPT
     sigemptyset(&mask);
     sigprocmask(SIG_SETMASK, &mask, NULL);
 }
 
+//Mudando o comportamento padrão do sinal SIGCHLD
 void sigchld_handler(int signum){
     pid_t pid;
     int   status;
@@ -101,8 +100,6 @@ void sigchld_handler(int signum){
                 return;
             }
 
-            printf("SIGCHLD HANDLER: ");
-            printProcess(proc);
             if (!WIFEXITED(status))
                 kill(-(proc->pgid), SIGKILL);
         
@@ -111,10 +108,10 @@ void sigchld_handler(int signum){
     }
 }
 
+//Mudando o comportamento padrão do sinal SIGSTP
 void sigtstp_handler(int signum){
     printf("\nAll running process have been stopped\n");
     searchAndSuspend(procList);
-    //signal(SIGTSTP,sigtstp_handler);
 }
 
 
@@ -130,7 +127,7 @@ int main(){
         signal(SIGTSTP,sigtstp_handler);
         while((num = prompt()) == 0);
 
-        if (num == 1){
+        if (num == 1){ //Processo em foreground
             tcommand cm = get_args(buffer[0]);
             
             
@@ -142,34 +139,28 @@ int main(){
 
             int f1 = fork();
 
-            if (f1 == 0){
+            if (f1 == 0){ //Código do filho (processo de foreground)
                 signal(SIGINT, SIG_IGN);
-                //signal(SIGTSTP,SIG_IGN);
                 execvp(cm.argv[0], cm.argv);
                 exit(0);
             }
-            else{
+            else{ //Código do pai (gsh)
                 Process* proc = createProcess(f1, getpgid(f1));
                 procList = insertProcess(procList, proc);
 
                 int status;
                 waitpid(f1, &status, WUNTRACED);
-                //printf("argumentos = %d\n", cm.argc);
                 rep(i, 0, cm.argc+1){
-                    //printf(" arg%d = %s ", i, cm.argv[i]);
                     free(cm.argv[i]);
                 }
-                //printf("\n");
+                
                 free(cm.argv);
                 procList = removeProcess(procList, f1);
-
-                // signal(SIGINT, sigint_handler);
-
             }
             
         }
-        else{
-            //rodar os processos em background    
+        else{ //Processos em background 
+               
             tcommand cmd[num];
             int first = 1;
             pid_t pgid;
@@ -180,23 +171,22 @@ int main(){
                 
                 int createdGhost;
 
-                if (!f){
-                    srand(getpid());
-                     createdGhost = ROLL(2);
+                if (!f){ //Código do filho (processo de background)
+                     srand(getpid()); //Mudando a semente do número aleatório com o PID do processo
+                     createdGhost = ROLL(2); //Se ROLL(2) igual a 1, o processo cria um ghost.
                      signal(SIGINT, SIG_IGN);
-                    //signal(SIGTSTP,SIG_IGN);
 
                     if (first) pgid = f, first = 0;
                     setpgid(f, pgid);
 
-                    if(createdGhost){
+                    if(createdGhost){ //Criando o ghost que executará o mesmo código do pai
                         fork();
                     }
                     
                     execvp(cmd[i].argv[0], cmd[i].argv);
                     exit(0);
                 }
-                else{
+                else{ //Código do pai (gsh)
                     all[i] = f;
                     if (first) pgid = f, first = 0;
                     setpgid(f, pgid);
@@ -204,13 +194,11 @@ int main(){
 
                     Process* proc = createProcess(f, pgid);
                     procList = insertProcess(procList, proc);
-                    // printProcessManager(procList);
-                    //printf("argumentos = %d\n", cmd[i].argc);
+        
                     rep(j, 0, cmd[i].argc){
-                        //printf(" arg%d = %s ", i, cmd[i].argv[j]);
                         free(cmd[i].argv[j]);
                     }
-                    //printf("\n");
+        
                     free(cmd[i].argv);
                 }
             }
